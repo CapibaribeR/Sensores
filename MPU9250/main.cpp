@@ -9,9 +9,7 @@ Timer t;
         
 int main() {
   //Set up I2C
-  i2c.frequency(400000);  // use fast (400 kHz) I2C  
-  
-  printf("CPU SystemCoreClock is %d Hz\r\n", SystemCoreClock);   
+  i2c.frequency(400000);  // use fast (400 kHz) I2C    
   
   t.start();        
     
@@ -42,50 +40,50 @@ int main() {
     printf("z accel bias = %f\n\r", accelBias[2]);
     wait_us(2000);
     mpu9250.initMPU9250(); 
-    printf("MPU9250 initialized for active data mode....\n\r"); // Initialize device for active mode read of acclerometer, gyroscope, and temperature
+    printf("MPU9250 initialized for active data mode....\n\r"); // Initialize device for active mode read of accelerometer, gyroscope, and temperature
     printf("AK8963 initialized for active data mode....\n\r"); // Initialize device for active mode read of magnetometer
     printf("Accelerometer full-scale range = %f  g\n\r", 2.0f*(float)(1<<Ascale));
     printf("Gyroscope full-scale range = %f  deg/s\n\r", 250.0f*(float)(1<<Gscale));
     wait_us(1000);
-   } else {
+  } else {
     printf("Could not connect to MPU9250: \n\r");
     printf("%#x \n",  whoami);
  
     sprintf(buffer, "WHO_AM_I 0x%x", whoami);
  
-    while(1) ; // Loop forever if communication doesn't happen
-    }
- 
-    mpu9250.getAres(); // Get accelerometer sensitivity
-    mpu9250.getGres(); // Get gyro sensitivity
-    printf("Accelerometer sensitivity is %f LSB/g \n\r", 1.0f/aRes);
-    printf("Gyroscope sensitivity is %f LSB/deg/s \n\r", 1.0f/gRes);
- 
- while(1) {
-  
-  // If intPin goes high, all data registers have new data
-  if(mpu9250.readByte(MPU9250_ADDRESS, INT_STATUS) & 0x01) {  // On interrupt, check if data ready interrupt
- 
-    mpu9250.readAccelData(accelCount);  // Read the x/y/z adc values   
-    // Now we'll calculate the accleration value into actual g's
-    ax = (float)accelCount[0]*aRes - accelBias[0];  // get actual g value, this depends on scale being set
-    ay = (float)accelCount[1]*aRes - accelBias[1];   
-    az = (float)accelCount[2]*aRes - accelBias[2];  
-   
-    mpu9250.readGyroData(gyroCount);  // Read the x/y/z adc values
-    // Calculate the gyro value into actual degrees per second
-    gx = (float)gyroCount[0]*gRes - gyroBias[0];  // get actual gyro value, this depends on scale being set
-    gy = (float)gyroCount[1]*gRes - gyroBias[1];  
-    gz = (float)gyroCount[2]*gRes - gyroBias[2];   
+    while(1); // Loop forever if communication doesn't happen
   }
+ 
+  mpu9250.getAres(); // Get accelerometer sensitivity
+  mpu9250.getGres(); // Get gyro sensitivity
+  printf("Accelerometer sensitivity is %f LSB/g \n\r", 1.0f/aRes);
+  printf("Gyroscope sensitivity is %f LSB/deg/s \n\r", 1.0f/gRes);
+ 
+  while(1) {
+    // If intPin goes high, all data registers have new data
+    if(mpu9250.readByte(MPU9250_ADDRESS, INT_STATUS) & 0x01) {  // On interrupt, check if data ready interrupt
     
+        mpu9250.readAccelData(accelCount);  // Read the x/y/z adc values   
+        // Now we'll calculate the accleration value into actual g's
+        ax = (float)accelCount[0]*aRes - accelBias[0];  // get actual g value, this depends on scale being set
+        ay = (float)accelCount[1]*aRes - accelBias[1];   
+        az = (float)accelCount[2]*aRes - accelBias[2];  
+    
+        mpu9250.readGyroData(gyroCount);  // Read the x/y/z adc values
+        // Calculate the gyro value into actual degrees per second
+        gx = (float)gyroCount[0]*gRes - gyroBias[0];  // get actual gyro value, this depends on scale being set
+        gy = (float)gyroCount[1]*gRes - gyroBias[1];  
+        gz = (float)gyroCount[2]*gRes - gyroBias[2];   
+    }
+    mpu9250.MahonyQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, 0, 0, 0);
+
     printf("ax = %f", ax); 
     printf(" ay = %f", ay); 
-    printf(" az = %f  m/s^2\n\r", az); 
+    printf(" az = %f  mg\n\r", az); 
 
-    printf("gx = %f", gx*PI/180.0f); 
-    printf(" gy = %f", gy*PI/180.0f); 
-    printf(" gz = %f  rad/s\n\r", gz*PI/180.0f); 
+    printf("gx = %f", gx); 
+    printf(" gy = %f", gy); 
+    printf(" gz = %f  rad/s\n\r", gz); 
 
     tempCount = mpu9250.readTempData();  // Read the adc values
     temperature = ((float) tempCount) / 333.87f + 21.0f; // Temperature in degrees Centigrade
@@ -93,4 +91,4 @@ int main() {
     
     ThisThread::sleep_for(1s);
   }
- }
+}
