@@ -31,7 +31,7 @@ int main() {
     printf("x-axis self test: gyration trim within : %f p of factory value\n\r", SelfTest[3]);  
     printf("y-axis self test: gyration trim within : %f p of factory value\n\r", SelfTest[4]);  
     printf("z-axis self test: gyration trim within : %f p of factory value\n\r", SelfTest[5]);  
-    //mpu9250.calibrateMPU9250(gyroBias, accelBias); // Calibrate gyro and accelerometers, load biases in bias registers  
+      
     printf("x gyro bias = %f\n\r", gyroBias[0]);
     printf("y gyro bias = %f\n\r", gyroBias[1]);
     printf("z gyro bias = %f\n\r", gyroBias[2]);
@@ -77,17 +77,17 @@ int main() {
     }
     mpu9250.MahonyQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, 0, 0, 0);
 
-    printf("ax = %f", ax*9.81-0.15); 
-    printf(" ay = %f", ay*9.81-0.1); 
-    printf(" az = %f  m/s²\n\r", az*9.81);
+    printf("ax = %f", ax * 9.81 - 0.15); 
+    printf(" ay = %f", ay * 9.81 - 0.1); 
+    printf(" az = %f  m/s²\n\r", az * 9.81 + 0.12);
 
-    //printf("gx = %f", gx); 
-    //printf(" gy = %f", gy); 
-    //printf(" gz = %f  rad/s\n\r", gz); 
+    printf("gx = %f", gx); 
+    printf(" gy = %f", gy); 
+    printf(" gz = %f  rad/s\n\r", gz); 
 
     tempCount = mpu9250.readTempData();  // Read the adc values
     temperature = ((float) tempCount) / 333.87f + 21.0f; // Temperature in degrees Centigrade
-    //printf(" temperature = %f  C\n\r", temperature);    
+    printf(" temperature = %f  C\n\r", temperature);    
     
     ThisThread::sleep_for(1s);
   }
