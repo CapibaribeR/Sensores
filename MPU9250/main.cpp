@@ -1,94 +1,55 @@
 #include "mbed.h"
 #include "MPU9250.h"
 
-char buffer[14];
- 
 MPU9250 mpu9250;
 
 Timer t;
         
 int main() {
-  //Set up I2C
-  i2c.frequency(400000);  // use fast (400 kHz) I2C    
+  i2c.frequency(400000);  // Inicializa um I2C rápido (400Hz)  
   
-  t.start();        
-    
-  // Read the WHO_AM_I register, this is a good test of communication
-  uint8_t whoami = mpu9250.readByte(MPU9250_ADDRESS, WHO_AM_I_MPU9250);  // Read WHO_AM_I register for MPU-9250
-  printf("I AM 0x%x\n\r", whoami); printf("I SHOULD BE 0x71\n\r");
-  
-  if (whoami == 0x71) { // WHO_AM_I should always be 0x68
-    printf("MPU9250 WHO_AM_I is 0x%x\n\r", whoami);
-    printf("MPU9250 is online...\n\r");
-    sprintf(buffer, "WHO_AM_I 0x%x", whoami);
-    wait_us(1000);
-    
-    mpu9250.resetMPU9250(); // Reset registers to default in preparation for device calibration
-    mpu9250.MPU9250SelfTest(SelfTest); // Start by performing self test and reporting values
-    printf("x-axis self test: acceleration trim within : %f p of factory value\n\r", SelfTest[0]);  
-    printf("y-axis self test: acceleration trim within : %f p of factory value\n\r", SelfTest[1]);  
-    printf("z-axis self test: acceleration trim within : %f p of factory value\n\r", SelfTest[2]);  
-    printf("x-axis self test: gyration trim within : %f p of factory value\n\r", SelfTest[3]);  
-    printf("y-axis self test: gyration trim within : %f p of factory value\n\r", SelfTest[4]);  
-    printf("z-axis self test: gyration trim within : %f p of factory value\n\r", SelfTest[5]);  
-      
-    printf("x gyro bias = %f\n\r", gyroBias[0]);
-    printf("y gyro bias = %f\n\r", gyroBias[1]);
-    printf("z gyro bias = %f\n\r", gyroBias[2]);
-    printf("x accel bias = %f\n\r", accelBias[0]);
-    printf("y accel bias = %f\n\r", accelBias[1]);
-    printf("z accel bias = %f\n\r", accelBias[2]);
-    wait_us(2000);
-    mpu9250.initMPU9250(); 
-    printf("MPU9250 initialized for active data mode....\n\r"); // Initialize device for active mode read of accelerometer, gyroscope, and temperature
-    printf("AK8963 initialized for active data mode....\n\r"); // Initialize device for active mode read of magnetometer
-    printf("Accelerometer full-scale range = %f  g\n\r", 2.0f*(float)(1<<Ascale));
-    printf("Gyroscope full-scale range = %f  deg/s\n\r", 250.0f*(float)(1<<Gscale));
-    wait_us(1000);
-  } else {
-    printf("Could not connect to MPU9250: \n\r");
-    printf("%#x \n",  whoami);
- 
-    sprintf(buffer, "WHO_AM_I 0x%x", whoami);
- 
-    while(1); // Loop forever if communication doesn't happen
-  }
- 
-  mpu9250.getAres(); // Get accelerometer sensitivity
-  mpu9250.getGres(); // Get gyro sensitivity
-  printf("Accelerometer sensitivity is %f LSB/g \n\r", 1.0f/aRes);
-  printf("Gyroscope sensitivity is %f LSB/deg/s \n\r", 1.0f/gRes);
+  t.start();
+
+  mpu9250.resetMPU9250(); // Reinicia os registradores para o default para preparar para a calibração do dispositivo
+  mpu9250.MPU9250SelfTest(SelfTest); // Começa realizando um teste inicial e reporta os valores
+  mpu9250.initMPU9250(); // Inicializa o MPU
+
+  mpu9250.getAres(); // Sensitividade do acelerômetro
+  mpu9250.getGres(); // Sensitividade do giroscópio
 
   while(true) {
-    // If intPin goes high, all data registers have new data
-    if(mpu9250.readByte(MPU9250_ADDRESS, INT_STATUS) & 0x01) {  // On interrupt, check if data ready interrupt
+    // Se o pino for para HIGh, todo os registradores recebem novos dados
+    if(mpu9250.readByte(MPU9250_ADDRESS, INT_STATUS) & 0x01) {  // Na interrupção, checa se a data está prota para interromper
     
-        mpu9250.readAccelData(accelCount);  // Read the x/y/z adc values   
-        // Now we'll calculate the accleration value into actual g's
-        ax = (float)accelCount[0]*aRes - accelBias[0];  // get actual g value, this depends on scale being set
-        ay = (float)accelCount[1]*aRes - accelBias[1];   
-        az = (float)accelCount[2]*aRes - accelBias[2];  
+        mpu9250.readAccelData(accelCount);  // Lê os valores x/y/z do adc   
+        // Calcula a aceleração em g's
+        ax = (float)accelCount[0] * aRes - accelBias[0];
+        ay = (float)accelCount[1] * aRes - accelBias[1];   
+        az = (float)accelCount[2] * aRes - accelBias[2];  
     
-        mpu9250.readGyroData(gyroCount);  // Read the x/y/z adc values
-        // Calculate the gyro value into actual degrees per second
-        gx = (float)gyroCount[0]*gRes - gyroBias[0];  // get actual gyro value, this depends on scale being set
-        gy = (float)gyroCount[1]*gRes - gyroBias[1];  
-        gz = (float)gyroCount[2]*gRes - gyroBias[2];   
+        mpu9250.readGyroData(gyroCount);  // Lê os valores x/y/z do adc  
+        // Calcula a velocidade angular em graus por segundo
+        gx = (float)gyroCount[0] * gRes - gyroBias[0];
+        gy = (float)gyroCount[1] * gRes - gyroBias[1];  
+        gz = (float)gyroCount[2] * gRes - gyroBias[2];   
     }
+
+    // Normalização e conversão dos valores obtidos
     mpu9250.MahonyQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, 0, 0, 0);
 
+    // Printa os dados de aceleração convertendo para m/s² e fazendo a conversão
     printf("ax = %f", ax * 9.81 - 0.15); 
     printf(" ay = %f", ay * 9.81 - 0.1); 
     printf(" az = %f  m/s²\n\r", az * 9.81 + 0.12);
 
+    // Printa os dados de velocidade angular
     printf("gx = %f", gx); 
     printf(" gy = %f", gy); 
     printf(" gz = %f  rad/s\n\r", gz); 
 
-    tempCount = mpu9250.readTempData();  // Read the adc values
-    temperature = ((float) tempCount) / 333.87f + 21.0f; // Temperature in degrees Centigrade
+    // Lê o valores adc de temperatura em Kelvin, converte para graus Celsius e printa
+    tempCount = mpu9250.readTempData();
+    temperature = ((float) tempCount) / 333.87f + 21.0f;
     printf(" temperature = %f  C\n\r", temperature);    
-    
-    ThisThread::sleep_for(1s);
   }
 }
